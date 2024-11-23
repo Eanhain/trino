@@ -19,6 +19,7 @@ import io.airlift.configuration.AbstractConfigurationAwareModule;
 import io.trino.plugin.base.security.ConnectorAccessControlModule;
 import io.trino.plugin.base.security.FileBasedAccessControlModule;
 import io.trino.plugin.base.security.ReadOnlySecurityModule;
+import io.trino.plugin.hive.security.ranger.RangerBasedAccessControlModule;
 
 import static io.airlift.configuration.ConfigurationAwareModule.combine;
 
@@ -27,12 +28,7 @@ public class HiveSecurityModule
 {
     public enum HiveSecurity
     {
-        ALLOW_ALL,
-        READ_ONLY,
-        FILE,
-        SQL_STANDARD,
-        SYSTEM,
-        /**/
+        ALLOW_ALL, READ_ONLY, FILE, SQL_STANDARD, SYSTEM, RANGER
     }
 
     @Override
@@ -45,6 +41,7 @@ public class HiveSecurityModule
             case FILE -> combine(new FileBasedAccessControlModule(), new StaticAccessControlMetadataModule());
             case SQL_STANDARD -> new SqlStandardSecurityModule();
             case SYSTEM -> new SystemSecurityModule();
+            case RANGER -> new RangerBasedAccessControlModule();
         });
     }
 
