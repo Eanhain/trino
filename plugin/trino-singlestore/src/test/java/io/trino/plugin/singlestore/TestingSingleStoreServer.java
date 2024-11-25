@@ -30,8 +30,8 @@ public class TestingSingleStoreServer
 {
     private static final String MEM_SQL_LICENSE = requiredNonEmptySystemProperty("memsql.license");
 
-    public static final String DEFAULT_TAG = "memsql/cluster-in-a-box:centos-7.1.13-11ddea2a3a-3.0.0-1.9.0";
-    public static final String LATEST_TESTED_TAG = "memsql/cluster-in-a-box:alma-8.0.4-c190bb9c08-4.0.10-1.14.4";
+    public static final String DEFAULT_TAG = "memsql/cluster-in-a-box:alma-8.0.19-f48780d261-4.0.11-1.16.0";
+    public static final String LATEST_TESTED_TAG = "memsql/cluster-in-a-box:alma-8.5.22-fe61f40cd1-4.1.0-1.17.11";
 
     public static final Integer SINGLESTORE_PORT = 3306;
 
@@ -44,14 +44,13 @@ public class TestingSingleStoreServer
     {
         super(DockerImageName.parse(dockerImageName));
         addEnv("ROOT_PASSWORD", "memsql_root_password");
-        String option = dockerImageName.equals(LATEST_TESTED_TAG) ? "bash" : "";
         withCommand("sh", "-xeuc",
-                option + " /startup && " +
+                "bash /startup && " +
                         // Lower the size of pre-allocated log files to 1MB (minimum allowed) to reduce disk footprint
                         "memsql-admin update-config --yes --all --set-global --key \"log_file_size_partitions\" --value \"1048576\" && " +
                         "memsql-admin update-config --yes --all --set-global --key \"log_file_size_ref_dbs\" --value \"1048576\" && " +
                         // re-execute startup to actually start the nodes (first run performs setup but doesn't start the nodes)
-                        "exec " + option + " /startup");
+                        "exec bash /startup");
         start();
     }
 

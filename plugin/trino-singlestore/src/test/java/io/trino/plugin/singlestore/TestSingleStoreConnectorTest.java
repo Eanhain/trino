@@ -83,6 +83,7 @@ public class TestSingleStoreConnectorTest
                  SUPPORTS_RENAME_SCHEMA,
                  SUPPORTS_RENAME_TABLE_ACROSS_SCHEMAS,
                  SUPPORTS_ROW_TYPE,
+                 SUPPORTS_NEGATIVE_DATE,
                  SUPPORTS_SET_COLUMN_TYPE -> false;
             default -> super.hasBehavior(connectorBehavior);
         };
@@ -114,7 +115,6 @@ public class TestSingleStoreConnectorTest
     protected Optional<DataMappingTestSetup> filterDataMappingSmokeTestData(DataMappingTestSetup dataMappingTestSetup)
     {
         String typeName = dataMappingTestSetup.getTrinoTypeName();
-
         return switch (typeName) {
             // SingleStore does not have built-in support for boolean type. SingleStore provides BOOLEAN as the synonym of TINYINT(1)
             // Querying the column with a boolean predicate subsequently fails with "Cannot apply operator: tinyint = boolean"
@@ -122,6 +122,8 @@ public class TestSingleStoreConnectorTest
             // SingleStore supports only second precision
             // Skip 'time' that is alias of time(3) here and add test cases in TestSingleStoreTypeMapping.testTime instead
             case "time" -> Optional.empty();
+            // https://docs.singlestore.com/cloud/reference/sql-reference/data-types/time-and-date/
+            case "date" -> Optional.of(new DataMappingTestSetup(dataMappingTestSetup.getTrinoTypeName(), "DATE '1000-01-01'", "DATE '9999-12-31'"));
             case "timestamp(3) with time zone", "timestamp(6) with time zone" -> Optional.of(dataMappingTestSetup.asUnsupported());
             // TODO this should either work or fail cleanly
             case "timestamp" -> Optional.empty();
@@ -175,6 +177,14 @@ public class TestSingleStoreConnectorTest
 
         assertUpdate(getSession(), "DROP TABLE test_table");
         assertThat(getQueryRunner().tableExists(getSession(), "test_table")).isFalse();
+    }
+
+    @Test
+    @Override
+    public void testDateYearOfEraPredicate()
+    {
+        assertThatThrownBy(super::testDateYearOfEraPredicate)
+                .hasMessageContaining("Invalid DATE/TIME in type conversion");
     }
 
     @Test
@@ -313,24 +323,6 @@ public class TestSingleStoreConnectorTest
 
     @Test
     @Override
-    public void testCreateTableAsSelectNegativeDate()
-    {
-        // TODO (https://github.com/trinodb/trino/issues/10320) SingleStore stores '0000-00-00' when inserted negative dates and it throws an exception during reading the row
-        assertThatThrownBy(super::testCreateTableAsSelectNegativeDate)
-                .hasStackTraceContaining("TrinoException: Driver returned null LocalDate for a non-null value");
-    }
-
-    @Test
-    @Override
-    public void testInsertNegativeDate()
-    {
-        // TODO (https://github.com/trinodb/trino/issues/10320) SingleStore stores '0000-00-00' when inserted negative dates and it throws an exception during reading the row
-        assertThatThrownBy(super::testInsertNegativeDate)
-                .hasStackTraceContaining("TrinoException: Driver returned null LocalDate for a non-null value");
-    }
-
-    @Test
-    @Override
     public void testNativeQueryCreateStatement()
     {
         // SingleStore returns a ResultSet metadata with no columns for CREATE TABLE statement.
@@ -397,7 +389,7 @@ public class TestSingleStoreConnectorTest
     protected void verifySchemaNameLengthFailurePermissible(Throwable e)
     {
         // The error message says 60 char, but the actual limitation is 62
-        assertThat(e).hasMessageContaining("Distributed MemSQL requires the length of the database name to be at most 60 characters");
+        assertThat(e).hasMessageContaining("Distributed SingleStore requires the length of the database name to be at most 60 characters");
     }
 
     @Override
@@ -422,6 +414,18 @@ public class TestSingleStoreConnectorTest
     protected void verifyColumnNameLengthFailurePermissible(Throwable e)
     {
         assertThat(e).hasMessageMatching(".*Identifier name '.*' is too long");
+    }
+
+    @Override
+    protected String errorMessageForInsertNegativeDate(String date)
+    {
+        return ".*Invalid DATE/TIME in type conversion";
+    }
+
+    @Override
+    protected String errorMessageForCreateTableAsSelectNegativeDate(String date)
+    {
+        return ".*Invalid DATE/TIME in type conversion";
     }
 
     @Override
