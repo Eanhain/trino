@@ -114,6 +114,12 @@
         <dependency>
             <groupId>io.trino</groupId>
             <artifactId>trino-hive</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.trino.hadoop</groupId>
+                    <artifactId>hadoop-apache</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

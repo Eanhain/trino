@@ -128,6 +128,10 @@
                     <groupId>io.airlift</groupId>
                     <artifactId>http-client</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>io.trino.hadoop</groupId>
+                    <artifactId>hadoop-apache</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
